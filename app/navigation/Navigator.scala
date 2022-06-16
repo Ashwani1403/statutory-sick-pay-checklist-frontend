@@ -95,18 +95,16 @@ class Navigator @Inject()() {
     }.getOrElse(routes.JourneyRecoveryController.onPageLoad())
 
   private def dateSicknessBeganCheckRoutes(answers: UserAnswers): Call = {
-    (for {
-      _ <- answers.get(DateSicknessBeganPage)
-      hasEnded <- answers.get(HasSicknessEndedPage)
-    } yield {
-      if (hasEnded && answers.get(DateSicknessEndedPage).isEmpty) {
-        routes.DateSicknessEndedController.onPageLoad(CheckMode)
-      } else if (answers.get(WhenDidYouLastWorkPage).isEmpty) {
-        routes.WhenDidYouLastWorkController.onPageLoad(CheckMode)
-      } else {
+    {
+      for {
+        _ <- answers.get(DateSicknessBeganPage).toRight(routes.JourneyRecoveryController.onPageLoad())
+        hasEnded <- answers.get(HasSicknessEndedPage).toRight(routes.JourneyRecoveryController.onPageLoad())
+        _ <- if (hasEnded) answers.get(DateSicknessEndedPage).toRight(routes.DateSicknessEndedController.onPageLoad(CheckMode)) else Right(Unit)
+        _ <- answers.get(WhenDidYouLastWorkPage).toRight(routes.WhenDidYouLastWorkController.onPageLoad(CheckMode))
+      } yield {
         routes.CheckYourAnswersController.onPageLoad
       }
-    }).getOrElse(routes.JourneyRecoveryController.onPageLoad())
+    }.merge
   }
 
   private def dateSicknessEndedCheckRoutes(answers: UserAnswers): Call = {
